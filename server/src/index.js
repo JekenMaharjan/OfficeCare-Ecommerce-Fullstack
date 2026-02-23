@@ -15,7 +15,7 @@ import orderRouter from "./routes/orderRoutes.js";
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT;
 
 // ================================================================================
 
@@ -40,10 +40,7 @@ startServer();
 
 // ================================================================================
 
-const allowedOrigins = [
-    "http://localhost:3000",
-    process.env.CLIENT_URL
-];
+const allowedOrigins = process.env.CLIENT_URL;
 
 // Middleware
 app.use(
