@@ -9,7 +9,7 @@ It allows users to browse office products, manage carts, place orders, and enabl
 
 ## Live Demo
 
-> Coming Soon..
+> https://officecare-ecommerce-fullstack-frontend.onrender.com/
 
 ---
 
