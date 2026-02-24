@@ -80,6 +80,8 @@ const AdminProducts = () => {
         e.preventDefault();
 
         try {
+            const token = localStorage.getItem("token");
+
             const formData = new FormData();
             formData.append("name", name);
             formData.append("description", description);
@@ -90,7 +92,15 @@ const AdminProducts = () => {
                 formData.append("image", image);
             }
 
-            await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/products`, formData);
+            await axios.post(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/products`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
 
             toast.success("Product created successfully !!");
 
@@ -101,8 +111,8 @@ const AdminProducts = () => {
             setPrice("");
             setStock("");
             setImage(null);
-
             setOpen(false);
+
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Something went wrong");
         }
@@ -110,7 +120,17 @@ const AdminProducts = () => {
 
     const handleDelete = async (id: string) => {
         try {
-            await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/products/${id}`);
+            const token = localStorage.getItem("token");
+
+            await axios.delete(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/products/${id}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
             toast.success("Product deleted !!");
             getAllProducts();
         } catch (error: any) {
