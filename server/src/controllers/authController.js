@@ -4,8 +4,6 @@ import jwt from "jsonwebtoken";
 
 const saltRounds = 10;
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
 // ============================================================================
 // REGISTER USER
 // ============================================================================
@@ -58,36 +56,64 @@ export const registerNewUser = async (req, res) => {
 // ============================================================================
 // SIGNIN USER
 // ============================================================================
-export const signin = async (req, res) => {
-    const { email, password } = req.body;
-
+export const signinUser = async (req, res) => {
     try {
+        const { email, password } = req.body;
+
+        // 1️. Validate input
+        if (!email || !password) {
+            return res.status(400).json({
+                message: "Email and password are required.",
+            });
+        }
+
+        // 2️. Check if user exists
         const user = await User.findOne({ email });
-        if (!user) return res.status(404).json({ message: "User not found" });
+        if (!user) {
+            return res.status(400).json({
+                message: "Invalid email or password.",
+            });
+        }
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(400).json({ message: "Invalid password" });
+        // 3️. Compare passwords
+        const isMatched = await bcrypt.compare(password, user.password);
+        if (!isMatched) {
+            return res.status(400).json({
+                message: "Invalid email or password.",
+            });
+        }
 
-        // Create JWT token
+        // 4️. Generate JWT token
         const token = jwt.sign(
             { id: user._id, role: user.role },
-            JWT_SECRET,
+            process.env.JWT_SECRET,
             { expiresIn: "1d" }
         );
 
-        // Send token and user info
-        res.status(200).json({
-            token,  // make sure this exists
+        // 5️. Send cookie (secure in production)
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "none", // important for frontend + backend on different domains
+            maxAge: 24 * 60 * 60 * 1000,
+        });
+
+        return res.status(200).json({
+            token,
+            message: "Logged in successfully.",
             user: {
                 id: user._id,
                 name: user.name,
                 email: user.email,
                 role: user.role,
             },
+            isLoggedIn: true,
         });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server error" });
+        console.error("Signin error:", error);
+        return res.status(500).json({
+            message: "Signin failed. Please try again later.",
+        });
     }
 };
