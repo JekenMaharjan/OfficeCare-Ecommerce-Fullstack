@@ -80,32 +80,32 @@ const AdminProducts = () => {
         e.preventDefault();
 
         try {
-            const token = localStorage.getItem("token");
-
             const formData = new FormData();
             formData.append("name", name);
             formData.append("description", description);
             formData.append("price", price);
             formData.append("stock", stock);
+            if (image) formData.append("image", image);
 
-            if (image) {
-                formData.append("image", image);
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Please login again");
+                return;
             }
 
             await axios.post(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/products`,
                 formData,
                 {
+                    withCredentials: true,  // this allows cookies, not headers
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
                     },
                 }
             );
 
             toast.success("Product created successfully !!");
-
             getAllProducts();
-
             setName("");
             setDescription("");
             setPrice("");

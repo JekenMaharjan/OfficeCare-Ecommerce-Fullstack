@@ -4,19 +4,26 @@ import User from "../models/user.js";
 // Auth middleware
 export const authMiddleware = async (req, res, next) => {
     try {
-        const token = req.cookies?.token;
+        // Check token from cookies OR Authorization header
+        const token =
+            req.cookies?.token ||
+            req.headers.authorization?.split(" ")[1]; // Bearer <token>
+
         if (!token) {
             return res.status(401).json({ message: "Unauthorized: No token provided" });
         }
+
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decoded.id).select("-password");
         if (!user) {
             return res.status(401).json({ message: "User not found" });
         }
-        req.user = user;
+
+        req.user = user; // attach user to request
         next();
     } catch (error) {
-        return res.status(401).json({ message: "Unauthorized" });
+        console.error("Auth error:", error.message);
+        return res.status(401).json({ message: "Unauthorized: Invalid token" });
     }
 };
 
@@ -35,11 +42,9 @@ export const adminMiddleware = (req, res, next) => {
 // Authorize
 export const authorize = (...roles) => {
     return (req, res, next) => {
-        if (!roles.includes(req.user.role)) {
+        if (!req.user || !roles.includes(req.user.role)) {
             return res.status(403).json({ message: "Access denied" });
         }
         next();
     };
 };
-
-// ==========================================================================
