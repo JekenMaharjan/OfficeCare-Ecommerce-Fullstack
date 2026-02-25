@@ -209,25 +209,31 @@ const CustomerCart = () => {
 
     // Handle place order
     const handlePlaceOrder = async () => {
+        if (placingOrder) return;
+
+        setPlacingOrder(true); // LOCK IMMEDIATELY
+
+        // Validation
         if (!fullName.trim() || !phone.trim() || !address.trim()) {
             toast.error("Please fill all fields");
+            setPlacingOrder(false);
             return;
         }
 
         if (cartItems.length === 0) {
             toast.error("Cart is empty");
+            setPlacingOrder(false);
+            return;
+        }
+
+        const token = localStorage.getItem("token");
+        if (!token) {
+            toast.error("Please login again");
+            setPlacingOrder(false);
             return;
         }
 
         try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                toast.error("Please login again");
-                return;
-            }
-            
-            setPlacingOrder(true);
-
             await axios.post(
                 `${API}/api/orders`,
                 {
@@ -235,7 +241,7 @@ const CustomerCart = () => {
                     phone: phone.trim(),
                     shippingAddress: address.trim(),
                 },
-                { 
+                {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -244,7 +250,6 @@ const CustomerCart = () => {
 
             toast.success("Order placed successfully!");
 
-            // Reset everything properly
             setFullName("");
             setPhone("");
             setAddress("");
@@ -256,7 +261,7 @@ const CustomerCart = () => {
 
         } catch (error: any) {
             toast.error(
-                error.response?.data?.message || "Failed to place order"
+                error?.response?.data?.message || "Failed to place order"
             );
         } finally {
             setPlacingOrder(false);
@@ -387,6 +392,7 @@ const CustomerCart = () => {
 
                         {/* Confirm Button */}
                         <Button
+                            type="button"
                             className="w-full mt-6 bg-green-600 hover:bg-green-700"
                             onClick={handlePlaceOrder}
                             disabled={placingOrder}
