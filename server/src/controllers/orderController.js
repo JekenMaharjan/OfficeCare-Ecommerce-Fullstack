@@ -1,20 +1,27 @@
+import mongoose from "mongoose";
 import Order from "../models/order.js";
 import Cart from "../models/cart.js";
 
-// ==========================================================================
 
-// GET : Get all orders
-// POST : Create order
-// PATCH : Partially update orders' status
+// ====================================================================================================
+// ORDER CONTROLLER
+// ====================================================================================================
+// GET: Get all orders
+// POST: Create order
+// PATCH: Partially update orders' status
+// ====================================================================================================
 
-// ==========================================================================
 
-// GET : /api/orders
+// ====================================================================================================
+// GET: Get all orders
+// ====================================================================================================
 export const getAllOrders = async (req, res) => {
     try {
         const orders = await Order.find()
             .populate("user", "name email")
-            .populate("products.product", "name price");
+            .populate("products.product", "name price")
+            .sort({ createdAt: -1 }) // newest first
+            .lean(); // use lean() for better performance
 
         res.status(200).json(orders);
     } catch (error) {
@@ -22,15 +29,20 @@ export const getAllOrders = async (req, res) => {
     }
 };
 
-// ==========================================================================
 
-// POST : /api/orders
+// ====================================================================================================
+// POST: Create order
+// ====================================================================================================
 export const createOrder = async (req, res) => {
     try {
         const { fullName, phone, shippingAddress } = req.body;
 
+        if (!fullName || !phone || !shippingAddress) {
+            return res.status(400).json({ message: "All shipping details are required" });
+        }
+
         console.log("USER ID:", req.user._id);
-        const cart = await Cart.findOne({ user: req.user.id })
+        const cart = await Cart.findOne({ user: req.user._id })
             .populate("items.product");
 
         console.log("CART FOUND:", cart);
@@ -45,6 +57,14 @@ export const createOrder = async (req, res) => {
             0
         );
 
+        for (let item of cart.items) {
+            if (item.product.stock < item.quantity) {
+                return res.status(400).json({
+                    message: `Not enough stock for ${item.product.name}`
+                });
+            }
+        }
+
         const order = await Order.create({
             user: req.user._id,
             fullName,
@@ -58,6 +78,11 @@ export const createOrder = async (req, res) => {
             status: "Pending"
         });
 
+        for (let item of cart.items) {
+            item.product.stock -= item.quantity;
+            await item.product.save();
+        }
+
         // Clear cart
         cart.items = [];
         await cart.save();
@@ -69,9 +94,10 @@ export const createOrder = async (req, res) => {
     }
 };
 
-// ==========================================================================
 
-// PATCH : /api/orders/:id
+// ====================================================================================================
+// PATCH: Partially update orders' status
+// ====================================================================================================
 export const updateOrderStatus = async (req, res) => {
     try {
         const { status } = req.body;
@@ -94,7 +120,15 @@ export const updateOrderStatus = async (req, res) => {
             return res.status(400).json({ message: "Invalid status value" });
         }
 
-        const order = await Order.findById(req.params.id);
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid order ID" });
+        }
+
+        const order = await Order.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { returnDocument: "after" }
+        );
 
         if (!order) {
             return res.status(404).json({ message: "Order not found" });
@@ -108,8 +142,6 @@ export const updateOrderStatus = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-};        
-
-// ==========================================================================
+};
 
 

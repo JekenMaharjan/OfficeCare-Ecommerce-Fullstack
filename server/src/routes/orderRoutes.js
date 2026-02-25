@@ -1,5 +1,5 @@
 import express from "express"
-import { authMiddleware, authorize } from "../middlewares/auth.js";
+import { adminMiddleware, authMiddleware, authorize } from "../middlewares/auth.js";
 import {
     createOrder,
     getAllOrders,
@@ -9,14 +9,14 @@ import {
 
 const orderRouter = express.Router();
 
-// =================================================================================================
+// ====================================================================================================
+// ORDER ROUTES
+// ====================================================================================================
 
 // Protect all order routes
 orderRouter.use(authMiddleware);
 
 // =================================================================================================
-
-// ORDER ROUTES
 
 // GET: Admin gets all orders -> admin only
 orderRouter.get("/", authorize("admin"), getAllOrders);

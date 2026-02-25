@@ -9,7 +9,7 @@ import {
     getProductById, 
     updateProduct 
 } from '../controllers/productController.js';
-import { authMiddleware, authorize } from '../middlewares/auth.js';
+import { adminMiddleware, authMiddleware, authorize } from '../middlewares/auth.js';
 
 const productRouter = express.Router();
 
@@ -28,14 +28,14 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// =================================================================================================
+// ====================================================================================================
+// PRODUCT ROUTES
+// ====================================================================================================
 
-// Protect all order routes
+// Protect all product routes
 productRouter.use(authMiddleware);
 
 // =================================================================================================
-
-// PRODUCT ROUTES
 
 // GET: Get all products -> admin + customer
 productRouter.get('/', authorize("admin", "customer"), getAllProducts);

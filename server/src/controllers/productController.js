@@ -1,24 +1,29 @@
+import mongoose from "mongoose";
 import Product from "../models/product.js";
 import path from "path";
-import fs from "fs";
+import { promises as fsPromises } from "fs";
 
-// ===========================================================================================
 
+// ====================================================================================================
+// PRODUCT CONTROLLER
+// ====================================================================================================
 // GET: Get all products
 // GET: Get product by ID
 // POST: Create product
 // PUT: Update product
 // DELETE: Delete a product
+// ====================================================================================================
 
-// ===========================================================================================
 
+// ====================================================================================================
 // GET: Get all products
+// ====================================================================================================
 export const getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find();
+        const products = await Product.find().lean(); // Add .lean() for plain JS objects
 
         const formatted = products.map((product) => ({
-            ...product._doc,
+            ...product,
             image: product.image ? `/uploads/${product.image}` : null,
         }));
 
@@ -28,11 +33,16 @@ export const getAllProducts = async (req, res) => {
     }
 };
 
-// ===========================================================================================
 
+// ====================================================================================================
 // GET: Get product by ID
+// ====================================================================================================
 export const getProductById = async (req, res) => {
     try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid product ID" });
+        }
+
         const product = await Product.findById(req.params.id);
 
         if (!product)
@@ -47,14 +57,15 @@ export const getProductById = async (req, res) => {
     }
 };
 
-// ===========================================================================================
 
+// ====================================================================================================
 // POST: Create product
+// ====================================================================================================
 export const createProduct = async (req, res) => {
     try {
         const { name, description, price, stock } = req.body;
 
-        if (!name || !description || !price || !stock)
+        if (!name || !description || price == null || stock == null)
             return res.status(400).json({ message: "All fields are required" });
 
         if (!req.file)
@@ -74,9 +85,10 @@ export const createProduct = async (req, res) => {
     }
 };
 
-// ===========================================================================================
 
+// ====================================================================================================
 // PUT: Update product
+// ====================================================================================================
 export const updateProduct = async (req, res) => {
     try {
         const { name, description, price, stock } = req.body;
@@ -90,8 +102,11 @@ export const updateProduct = async (req, res) => {
         const product = await Product.findByIdAndUpdate(
             req.params.id,
             updateData,
-            { returnDocument: "after" } // modern mongoose
+            { returnDocument: "after" }
         );
+
+        if (!product)
+            return res.status(404).json({ message: "Product not found" });
 
         res.json(product);
     } catch (error) {
@@ -99,9 +114,10 @@ export const updateProduct = async (req, res) => {
     }
 };
 
-// ===========================================================================================
 
+// ====================================================================================================
 // DELETE: Delete a product
+// ====================================================================================================
 export const deleteProduct = async (req, res) => {
     try {
         // Find the product first
@@ -113,13 +129,8 @@ export const deleteProduct = async (req, res) => {
         // Delete the image file if it exists
         if (product.image) {
             const imagePath = path.join(process.cwd(), "uploads", product.image);
-            fs.unlink(imagePath, (err) => {
-                if (err) {
-                    console.error("Failed to delete image file:", err.message);
-                    // We can continue even if image deletion fails
-                } else {
-                    console.log("Deleted image file:", imagePath);
-                }
+            await fsPromises.unlink(imagePath).catch(err => {
+                console.error("Failed to delete image file:", err.message);
             });
         }
 
@@ -133,4 +144,3 @@ export const deleteProduct = async (req, res) => {
     }
 };
 
-// ===========================================================================================

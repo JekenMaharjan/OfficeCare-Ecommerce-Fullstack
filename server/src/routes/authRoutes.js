@@ -3,9 +3,9 @@ import { registerNewUser, signinUser } from '../controllers/authController.js';
 
 const authRouter = express.Router();
 
-// =================================================================================================
-
+// ====================================================================================================
 // AUTH ROUTES
+// ====================================================================================================
 
 // POST: Register a User
 authRouter.post('/register', registerNewUser);

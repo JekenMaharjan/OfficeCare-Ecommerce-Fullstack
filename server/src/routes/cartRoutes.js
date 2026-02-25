@@ -1,5 +1,5 @@
 import express from "express"
-import { authMiddleware, authorize } from "../middlewares/auth.js";
+import { adminMiddleware, authMiddleware, authorize } from "../middlewares/auth.js";
 import {
     addToCart,
     getCartCount,
@@ -10,14 +10,14 @@ import {
 
 const cartRouter = express.Router();
 
-// =================================================================================================
+// ====================================================================================================
+// CART ROUTES
+// ====================================================================================================
 
-// Protect all order routes
+// Protect all cart routes
 cartRouter.use(authMiddleware);
 
 // =================================================================================================
-
-// CART ROUTES
 
 // GET: Get cart count -> customer only
 cartRouter.get("/count", authorize("customer"), getCartCount); 
