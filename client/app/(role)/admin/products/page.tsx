@@ -40,6 +40,7 @@ type Product = {
 }
 
 const AdminProducts = () => {
+    const API = process.env.NEXT_PUBLIC_API_URL;
     const router = useRouter();
 
     const [products, setProducts] = useState<Product[]>([]);
@@ -67,7 +68,7 @@ const AdminProducts = () => {
     const getAllProducts = async () => {
         try {
             const response = await axios.get(
-                process.env.NEXT_PUBLIC_API_URL + "/api/products",
+                `${API}/api/products`,
                 { withCredentials: true }
             );
             setProducts(response.data);
@@ -94,7 +95,7 @@ const AdminProducts = () => {
             }
 
             await axios.post(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/products`,
+                `${API}/api/products`,
                 formData,
                 {
                     withCredentials: true,  // this allows cookies, not headers
@@ -123,7 +124,7 @@ const AdminProducts = () => {
             const token = localStorage.getItem("token");
 
             await axios.delete(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/products/${id}`,
+                `${API}/api/products/${id}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,

@@ -27,6 +27,7 @@ type Product = {
 };
 
 const UpdateProductPage = () => {
+    const API = process.env.NEXT_PUBLIC_API_URL;
     const router = useRouter();
 
     // This reads the dynamic part of your URL
@@ -51,7 +52,7 @@ const UpdateProductPage = () => {
     const getProduct = async () => {
         try {
             const { data } = await axios.get(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/products/${id}`,
+                `${API}/api/products/${id}`,
                 { withCredentials: true }
             );
 
@@ -64,7 +65,7 @@ const UpdateProductPage = () => {
             console.log(data.image);
             // Set preview directly from backend image path
             if (data.image) {
-                setPreview(`${process.env.NEXT_PUBLIC_API_URL}${data.image}`);
+                setPreview(`${API}${data.image}`);
             }
 
         } catch (error) {
@@ -85,7 +86,7 @@ const UpdateProductPage = () => {
             formData.append("stock", stock);
             if (image) formData.append("image", image);
 
-            await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/products/${id}`, formData);
+            await axios.put(`${API}/api/products/${id}`, formData);
 
             toast.success("Product updated successfully !!");
             router.push("/admin/products");
@@ -109,7 +110,7 @@ const UpdateProductPage = () => {
                             {product?.image && (
                                 <div className="relative w-40 aspect-square">
                                     <Image
-                                        src={`${process.env.NEXT_PUBLIC_API_URL}${product.image}`}
+                                        src={`${API}${product.image}`}
                                         alt={product.image}
                                         className="object-contain w-auto h-auto transition-transform duration-300 group-hover:scale-120"
                                         fill

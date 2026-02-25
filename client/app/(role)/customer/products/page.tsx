@@ -24,6 +24,8 @@ const CustomerProducts = () => {
     const [addingToCartId, setAddingToCartId] = useState<string | null>(null);
     const [cartCount, setCartCount] = useState(0);
 
+    const API = process.env.NEXT_PUBLIC_API_URL;
+
     useEffect(() => {
         getAllProducts();
         fetchCartCount();
@@ -40,7 +42,7 @@ const CustomerProducts = () => {
     const getAllProducts = async () => {
         try {
             const { data } = await axios.get(
-                process.env.NEXT_PUBLIC_API_URL + "/api/products",
+                `${API}/api/products`,
                 { withCredentials: true }
             );
             setProducts(data);
@@ -52,7 +54,7 @@ const CustomerProducts = () => {
 
     const fetchCartCount = async () => {
         try {
-            const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/count`,
+            const { data } = await axios.get(`${API}/api/cart/count`,
                 { withCredentials: true }
             );
             
@@ -69,7 +71,7 @@ const CustomerProducts = () => {
             setCartCount(prev => prev + 1); // update immediately
 
             const { data } = await axios.post(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/cart`,
+                `${API}/api/cart`,
                 { productId, quantity: 1 },
                 { withCredentials: true }
             );
@@ -136,7 +138,7 @@ const CustomerProducts = () => {
                                 <div className="relative flex justify-center w-full h-52 overflow-hidden border-2 border-blue-400 rounded-md p-5">
                                     {product?.image ? (
                                         <Image
-                                            src={`${process.env.NEXT_PUBLIC_API_URL}${product.image}`}
+                                            src={`${API}${product.image}`}
                                             alt={product.name}
                                             height={170}
                                             width={170}
