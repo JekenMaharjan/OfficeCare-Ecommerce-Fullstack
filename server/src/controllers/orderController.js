@@ -37,27 +37,27 @@ export const createOrder = async (req, res) => {
     try {
         const { fullName, phone, shippingAddress } = req.body;
 
+        // Basic validation
         if (!fullName || !phone || !shippingAddress) {
-            return res.status(400).json({ message: "All shipping details are required" });
+            return res.status(400).json({
+                message: "All shipping details are required"
+            });
         }
 
-        console.log("USER ID:", req.user._id);
+        // Find cart
         const cart = await Cart.findOne({ user: req.user._id })
             .populate("items.product");
-
-        console.log("CART FOUND:", cart);
 
         if (!cart || cart.items.length === 0) {
             return res.status(400).json({ message: "Cart is empty" });
         }
 
-        const totalAmount = cart.items.reduce(
-            (acc, item) =>
-                acc + item.product.price * item.quantity,
-            0
-        );
-
+        // Check stock
         for (let item of cart.items) {
+            if (!item.product) {
+                return res.status(400).json({ message: "Product not found" });
+            }
+
             if (item.product.stock < item.quantity) {
                 return res.status(400).json({
                     message: `Not enough stock for ${item.product.name}`
@@ -65,11 +65,17 @@ export const createOrder = async (req, res) => {
             }
         }
 
+        // Calculate total
+        const totalAmount = cart.items.reduce((acc, item) => {
+            return acc + item.product.price * item.quantity;
+        }, 0);
+
+        // Create order
         const order = await Order.create({
             user: req.user._id,
-            fullName,
-            phone,
-            shippingAddress,
+            fullName: fullName.trim(),
+            phone: phone.trim(),
+            shippingAddress: shippingAddress.trim(),
             products: cart.items.map(item => ({
                 product: item.product._id,
                 quantity: item.quantity
@@ -78,10 +84,11 @@ export const createOrder = async (req, res) => {
             status: "Pending"
         });
 
-        for (let item of cart.items) {
-            item.product.stock -= item.quantity;
-            await item.product.save();
-        }
+        // Reduce stock
+        // for (let item of cart.items) {
+        //     item.product.stock -= item.quantity;
+        //     await item.product.save();
+        // }
 
         // Clear cart
         cart.items = [];
@@ -90,7 +97,9 @@ export const createOrder = async (req, res) => {
         res.status(201).json(order);
 
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({
+            message: "Something went wrong"
+        });
     }
 };
 
