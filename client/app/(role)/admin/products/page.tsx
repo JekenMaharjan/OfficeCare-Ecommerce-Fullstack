@@ -65,18 +65,33 @@ const AdminProducts = () => {
         setFilteredProducts(filtered);
     }, [searchTerm, products]);
 
+    // GET: Get all products
     const getAllProducts = async () => {
         try {
+            const token = localStorage.getItem("token");
+
+            if (!token) {
+                toast.error("Please login again");
+                return;
+            }
+
             const response = await axios.get(
                 `${API}/api/products`,
-                { withCredentials: true }
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
             );
+
             setProducts(response.data);
+
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Something went wrong");
         }
-    }
+    };
 
+    // POST: Add product
     const addProduct = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -119,6 +134,7 @@ const AdminProducts = () => {
         }
     };
 
+    // DELETE: Delete product
     const handleDelete = async (id: string) => {
         try {
             const token = localStorage.getItem("token");
@@ -139,6 +155,7 @@ const AdminProducts = () => {
         }
     };
 
+    // Search box handling
     const handleSearch = () => {
         const filtered = products.filter((product) =>
             product.name.toLowerCase().includes(searchTerm.toLowerCase())

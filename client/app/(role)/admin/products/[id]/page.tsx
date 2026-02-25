@@ -51,9 +51,20 @@ const UpdateProductPage = () => {
     // Get products detail from db
     const getProduct = async () => {
         try {
+            const token = localStorage.getItem("token");
+
+            if (!token) {
+                toast.error("Please login again");
+                return;
+            }
+
             const { data } = await axios.get(
                 `${API}/api/products/${id}`,
-                { withCredentials: true }
+                { 
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
             );
 
             setProduct(data);
@@ -79,6 +90,12 @@ const UpdateProductPage = () => {
         if (!id) return;
 
         try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Please login again");
+                return;
+            }
+
             const formData = new FormData();
             formData.append("name", name);
             formData.append("description", description);
@@ -86,12 +103,18 @@ const UpdateProductPage = () => {
             formData.append("stock", stock);
             if (image) formData.append("image", image);
 
-            await axios.put(`${API}/api/products/${id}`, formData);
+            await axios.put(`${API}/api/products/${id}`, formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data",
+                },
+            });
 
             toast.success("Product updated successfully !!");
             router.push("/admin/products");
         } catch (error: any) {
-            toast.error("Failed to update product !");
+            console.log(error.response?.data || error.message);
+            toast.error(error.response?.data?.message || "Failed to update product!");
         }
     };
 
@@ -112,7 +135,7 @@ const UpdateProductPage = () => {
                                     <Image
                                         src={`${API}${product.image}`}
                                         alt={product.image}
-                                        className="object-contain w-auto h-auto transition-transform duration-300 group-hover:scale-120"
+                                        className="object-contain w-auto h-auto transition-transform duration-300 group-hover:scale-110"
                                         fill
                                         unoptimized
                                         loading="eager"
@@ -224,7 +247,7 @@ const UpdateProductPage = () => {
                                         <img
                                             src={preview}
                                             alt="Preview"
-                                            className="object-contain w-auto h-auto transition-transform duration-300 group-hover:scale-120"
+                                            className="object-contain w-auto h-auto transition-transform duration-300 group-hover:scale-110"
                                             onError={() => setPreview(null)}
                                         />
                                     </div>

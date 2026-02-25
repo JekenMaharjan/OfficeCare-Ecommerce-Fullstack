@@ -20,6 +20,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
+import { toast } from "sonner";
 
 type ProductItem = {
     product: { name: string; price: number };
@@ -48,17 +49,30 @@ const AdminOrders = () => {
         fetchOrders();
     }, []);
 
+    // GET: Get all orders details
     const fetchOrders = async () => {
         try {
-            const res = await axios.get(`${API}/api/orders`, {
-                withCredentials: true,
-            });
+            const token = localStorage.getItem("token");
+
+            if (!token) {
+                toast.error("Please login again");
+                return;
+            }
+
+            const res = await axios.get(`${API}/api/orders`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
             setOrders(res.data);
         } catch (err) {
             console.error("Fetch Orders Error:", err);
         }
     };
 
+    // PATCH: Updates status of the order
     const updateStatus = async (id: string, status: string) => {
         try {
             await axios.patch(
@@ -88,6 +102,10 @@ const AdminOrders = () => {
         order.user.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
     
+    if (!orders) {
+        return <p className="text-center mt-10">Loading orders...</p>;
+    }
+
     return (
         <div className="min-h-full w-full bg-gray-100/50 p-6 rounded-md">
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 text-center mb-6">
@@ -123,65 +141,73 @@ const AdminOrders = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredOrders.map((order) => (
-                            <TableRow key={order._id}>
-                                <TableCell className="p-0 py-2 text-center">
-                                    {order._id.slice(0, 7)}
-                                </TableCell>
-                                <TableCell className="p-0 py-2 text-center flex flex-col font-medium">
-                                    <p>{order.fullName}</p>
-                                    <p>{order?.user?.email}</p>
-                                </TableCell>
-                                <TableCell className="text-center p-0 py-2">{getTotalItems(order)}</TableCell>
-                                <TableCell className="text-center p-0 py-2">{order.totalAmount}</TableCell>
-                                <TableCell className="text-center p-0 py-2">{order.status}</TableCell>
-                                <TableCell className="text-center p-0 py-2">{formatDate(order.createdAt)}</TableCell>
-                                <TableCell className="text-center p-0 py-2">
-                                    <Dialog
-                                        open={openOrderId === order._id}
-                                        onOpenChange={(isOpen) => {
-                                            setOpenOrderId(isOpen ? order._id : null);
-                                            if (isOpen) setSelectedStatus(order.status); // set current order status when opening
-                                        }}
-                                    >
-                                        <DialogTrigger className="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded-md font-semibold text-white">
-                                            Update
-                                        </DialogTrigger>
+                        {filteredOrders && filteredOrders.length > 0 ? (
+                            filteredOrders.map((order) => (
+                                <TableRow key={order._id}>
+                                    <TableCell className="p-0 py-2 text-center">
+                                        {order._id.slice(0, 7)}
+                                    </TableCell>
+                                    <TableCell className="p-0 py-2 text-center flex flex-col font-medium">
+                                        <p>{order.fullName}</p>
+                                        <p>{order?.user?.email}</p>
+                                    </TableCell>
+                                    <TableCell className="text-center p-0 py-2">{getTotalItems(order)}</TableCell>
+                                    <TableCell className="text-center p-0 py-2">{order.totalAmount}</TableCell>
+                                    <TableCell className="text-center p-0 py-2">{order.status}</TableCell>
+                                    <TableCell className="text-center p-0 py-2">{formatDate(order.createdAt)}</TableCell>
+                                    <TableCell className="text-center p-0 py-2">
+                                        <Dialog
+                                            open={openOrderId === order._id}
+                                            onOpenChange={(isOpen) => {
+                                                setOpenOrderId(isOpen ? order._id : null);
+                                                if (isOpen) setSelectedStatus(order.status); // set current order status when opening
+                                            }}
+                                        >
+                                            <DialogTrigger className="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded-md font-semibold text-white">
+                                                Update
+                                            </DialogTrigger>
 
-                                        <DialogContent className="w-80">
-                                            <DialogHeader>
-                                                <DialogTitle>Update Order Status</DialogTitle>
-                                                <DialogDescription>Select a new status for this order</DialogDescription>
+                                            <DialogContent className="w-80">
+                                                <DialogHeader>
+                                                    <DialogTitle>Update Order Status</DialogTitle>
+                                                    <DialogDescription>Select a new status for this order</DialogDescription>
 
-                                                <div className="flex justify-center mt-2">
-                                                    <select
-                                                        value={selectedStatus}
-                                                        onChange={(e) => setSelectedStatus(e.target.value)}
-                                                        className="w-full bg-white border border-gray-300 rounded-md px-2 py-1 text-sm hover:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                                    >
-                                                        <option value="Pending">Pending</option>
-                                                        <option value="Processing">Processing</option>
-                                                        <option value="Shipped">Shipped</option>
-                                                        <option value="Delivered">Delivered</option>
-                                                        <option value="Cancelled">Cancelled</option>
-                                                    </select>
-                                                </div>
-                                            </DialogHeader>
+                                                    <div className="flex justify-center mt-2">
+                                                        <select
+                                                            value={selectedStatus}
+                                                            onChange={(e) => setSelectedStatus(e.target.value)}
+                                                            className="w-full bg-white border border-gray-300 rounded-md px-2 py-1 text-sm hover:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                        >
+                                                            <option value="Pending">Pending</option>
+                                                            <option value="Processing">Processing</option>
+                                                            <option value="Shipped">Shipped</option>
+                                                            <option value="Delivered">Delivered</option>
+                                                            <option value="Cancelled">Cancelled</option>
+                                                        </select>
+                                                    </div>
+                                                </DialogHeader>
 
-                                            <Button
-                                                className="bg-green-500 hover:bg-green-600 mt-4 w-full"
-                                                onClick={() => {
-                                                    updateStatus(order._id, selectedStatus); // call API
-                                                    setOpenOrderId(null); // close dialog
-                                                }}
-                                            >
-                                                Save
-                                            </Button>
-                                        </DialogContent>
-                                    </Dialog>
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                                                <Button
+                                                    className="bg-green-500 hover:bg-green-600 mt-4 w-full"
+                                                    onClick={() => {
+                                                        updateStatus(order._id, selectedStatus); // call API
+                                                        setOpenOrderId(null); // close dialog
+                                                    }}
+                                                >
+                                                    Save
+                                                </Button>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        )) : (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="text-center py-6 text-gray-600">
+                                        No order found
+                                    </TableCell>
+                                </TableRow>
+                        )}
                     </TableBody>
                 </Table>
             </div>

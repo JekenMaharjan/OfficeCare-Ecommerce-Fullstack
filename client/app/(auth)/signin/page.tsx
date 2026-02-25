@@ -35,6 +35,8 @@ const SignIn = () => {
                     { withCredentials: true }
                 );
 
+                // console.log("LOGIN RESPONSE:", res.data);
+
                 const { token, user } = res.data;
 
                 if (!token) {
