@@ -35,7 +35,7 @@ const page = () => {
                 </h1>
 
                 {/* Subheading */}
-                <p className="text-gray-200 text-sm sm:text-base md:text-lg max-w-md">
+                <p className="text-gray-200 text-md max-w-md">
                     Your one-stop shop for office supplies and equipment. Quality products, fast delivery, and seamless shopping experience.
                 </p>
 
