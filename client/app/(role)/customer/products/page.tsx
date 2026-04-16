@@ -110,7 +110,7 @@ const CustomerProducts = () => {
         try {
             setAddingToCartId(productId);
 
-            const { data } = await axios.post(
+            await axios.post(
                 `${API}/api/cart`,
                 { productId, quantity: 1 },
                 {
@@ -118,18 +118,9 @@ const CustomerProducts = () => {
                 }
             );
 
-            // Update product stock in UI
-            setProducts(prev =>
-                prev.map(product =>
-                    product._id === productId
-                        ? { ...product, stock: data.updatedStock }
-                        : product
-                )
-            );
-
             setAddingToCartId(null);
 
-            // Update cart count after successful add
+            // Update cart count only
             await fetchCartCount();
 
             toast.success("Added to cart!");

@@ -60,22 +60,25 @@ export const addToCart = async (req, res) => {
         // Fetch product to check stock
         const product = await Product.findById(productId);
         if (!product) return res.status(404).json({ message: "Product not found!" });
-        if (product.stock < quantity) return res.status(400).json({ message: "Not enough stock!" });
 
-        // Update stock
-        product.stock -= quantity;
-        await product.save();
+        // Check stock only (do NOT decrease)
+        if (product.stock < quantity) {
+            return res.status(400).json({ message: "Not enough stock!" });
+        }
 
         // Fetch user cart
         let cart = await Cart.findOne({ user: userId });
 
         if (!cart) {
-            // Create cart if it doesn't exist
             cart = await Cart.create({
                 user: userId,
                 items: [{ product: productId, quantity }],
             });
-            return res.status(200).json({ cart, updatedStock: product.stock });
+
+            return res.status(200).json({
+                cart,
+                stock: product.stock
+            });
         }
 
         // Check if product already in cart
@@ -84,23 +87,31 @@ export const addToCart = async (req, res) => {
         );
 
         if (itemIndex > -1) {
-            // Product exists → update quantity
-            cart.items[itemIndex].quantity += quantity;
+            const newQuantity = cart.items[itemIndex].quantity + quantity;
+
+            if (product.stock < newQuantity) {
+                return res.status(400).json({
+                    message: "Not enough stock available"
+                });
+            }
+
+            cart.items[itemIndex].quantity = newQuantity;
         } else {
-            // Add new product
             cart.items.push({ product: productId, quantity });
         }
 
         await cart.save();
 
-        // Return updated cart and stock
-        res.status(200).json({ cart, updatedStock: product.stock });
+        res.status(200).json({
+            cart,
+            stock: product.stock
+        });
+
     } catch (error) {
         console.error("Add to cart error:", error);
         res.status(500).json({ message: "Failed to add to cart" });
     }
 };
-
 
 // ====================================================================================================
 // PATCH: Update cart quantity

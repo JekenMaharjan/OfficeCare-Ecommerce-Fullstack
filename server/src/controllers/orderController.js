@@ -38,7 +38,7 @@ export const createOrder = async (req, res) => {
         const { fullName, phone, shippingAddress } = req.body;
 
         // Basic validation
-        if (!fullName.trim() || !phone.trim() || !shippingAddress.trim()) {
+        if (!fullName?.trim() || !phone?.trim() || !shippingAddress?.trim()) {
             return res.status(400).json({
                 message: "All shipping details are required"
             });
@@ -53,12 +53,18 @@ export const createOrder = async (req, res) => {
         }
 
         // Check stock
-        for (let item of cart.items) {
+        for (const item of cart.items) {
+
             if (!item.product) {
-                return res.status(400).json({ message: "Product not found" });
+                return res.status(400).json({
+                    message: "Product not found"
+                });
             }
 
-            if (item.product.stock < item.quantity) {
+            const availableStock = Number(item.product.stock);
+            const requestedQty = Number(item.quantity);
+
+            if (availableStock < requestedQty) {
                 return res.status(400).json({
                     message: `Not enough stock for ${item.product.name}`
                 });
@@ -67,7 +73,7 @@ export const createOrder = async (req, res) => {
 
         // Calculate total
         const totalAmount = cart.items.reduce((acc, item) => {
-            return acc + item.product.price * item.quantity;
+            return acc + (item.product.price * item.quantity);
         }, 0);
 
         // Create order
@@ -84,11 +90,11 @@ export const createOrder = async (req, res) => {
             status: "Pending"
         });
 
-        // // Reduce stock
-        // for (let item of cart.items) {
-        //     item.product.stock -= item.quantity;
-        //     await item.product.save();
-        // }
+        // Reduce stock
+        for (const item of cart.items) {
+            item.product.stock -= item.quantity;
+            await item.product.save();
+        }
 
         // Clear cart
         cart.items = [];
