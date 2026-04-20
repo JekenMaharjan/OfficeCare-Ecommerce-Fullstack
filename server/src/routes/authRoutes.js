@@ -2,9 +2,13 @@ import express from 'express';
 import {
     registerNewUser,
     signinUser,
-    logoutUser,
-    getCurrentUser
 } from '../controllers/authController.js';
+// import {
+//     registerNewUser,
+//     signinUser,
+//     logoutUser,
+//     getCurrentUser
+// } from '../controllers/authController.js';
 
 import { authMiddleware } from '../middlewares/auth.js';
 
@@ -20,10 +24,10 @@ authRouter.post('/register', registerNewUser);
 // Login User
 authRouter.post('/signin', signinUser);
 
-// Logout User
-authRouter.post('/logout', logoutUser);
+// // Logout User
+// authRouter.post('/logout', logoutUser);
 
-// Get Current Logged in User
-authRouter.get('/me', authMiddleware, getCurrentUser);
+// // Get Current Logged in User
+// authRouter.get('/me', authMiddleware, getCurrentUser);
 
 export default authRouter;
