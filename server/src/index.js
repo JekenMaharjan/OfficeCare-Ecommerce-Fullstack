@@ -15,34 +15,14 @@ import orderRouter from "./routes/orderRoutes.js";
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 5000;
 
 // ================================================================================
-
-// Connect to DB and start server
-const startServer = async () => {
-    try {
-        await connect();
-        console.log("DB Connected");
-        await seedAdmin();
-        
-        // Start server
-        app.listen(port, () => {
-            console.log(`Server running on port ${port}`);
-        });
-    } catch (error) {
-        console.error(error);
-        process.exit(1);
-    }
-};
-
-startServer();
-
+// MIDDLEWARE
 // ================================================================================
 
 const allowedOrigins = process.env.CLIENT_URL;
 
-// Middleware
 app.use(
     cors({
         origin: allowedOrigins,
@@ -50,28 +30,47 @@ app.use(
         allowedHeaders: ["Content-Type", "Authorization"],
     })
 );
+
 app.use(express.json());
 app.use(cookieParser());
-
-// ================================================================================
 
 // Serve uploads folder
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ================================================================================
+// ROUTES
+// ================================================================================
 
-// Routes with proper paths
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/products", productRouter);
 app.use("/api/cart", cartRouter);
 app.use("/api/orders", orderRouter);
 
-// ================================================================================
-
-// Root test route
+// Root route
 app.get("/", (req, res) => {
-    console.log("Hello World!!");
     res.send("Server is working!");
 });
 
+// ================================================================================
+// START SERVER
+// ================================================================================
+
+const startServer = async () => {
+    try {
+        await connect();
+        console.log("DB Connected");
+
+        await seedAdmin();
+
+        app.listen(port, () => {
+            console.log(`Server running on port ${port}`);
+        });
+
+    } catch (error) {
+        console.error("Server startup failed:", error);
+        process.exit(1);
+    }
+};
+
+startServer();
