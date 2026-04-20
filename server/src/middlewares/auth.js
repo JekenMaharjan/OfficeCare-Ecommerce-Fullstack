@@ -1,64 +1,102 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 
-
 // ====================================================================================================
 // MIDDLEWARES AUTH
 // ====================================================================================================
 // Auth Middleware
 // Admin Middleware
-// Authorize User
+// Role Based Authorization
 // ====================================================================================================
-
 
 // ====================================================================================================
 // Auth Middleware
 // ====================================================================================================
 export const authMiddleware = async (req, res, next) => {
     try {
-        // Check token from cookies OR Authorization header
-        const token =
-            req.cookies?.token ||
-            req.headers.authorization?.split(" ")[1]; // Bearer <token>
+        let token;
 
+        // Get token from cookies
+        if (req.cookies?.token) {
+            token = req.cookies.token;
+        }
+
+        // Get token from Authorization header
+        if (!token && req.headers.authorization?.startsWith("Bearer")) {
+            token = req.headers.authorization.split(" ")[1];
+        }
+
+        // If no token
         if (!token) {
-            return res.status(401).json({ message: "Unauthorized: No token provided" });
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized: No token provided"
+            });
         }
 
+        // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Get user
         const user = await User.findById(decoded.id).select("-password");
+
         if (!user) {
-            return res.status(401).json({ message: "User not found" });
+            return res.status(401).json({
+                success: false,
+                message: "User not found"
+            });
         }
 
-        req.user = user; // attach user to request
+        // Attach user
+        req.user = user;
+
         next();
     } catch (error) {
         console.error("Auth error:", error.message);
-        return res.status(401).json({ message: "Unauthorized: Invalid token" });
+
+        return res.status(401).json({
+            success: false,
+            message: "Unauthorized: Invalid token"
+        });
     }
 };
-
 
 // ====================================================================================================
 // Admin Middleware
 // ====================================================================================================
 export const adminMiddleware = (req, res, next) => {
     if (!req.user || req.user.role !== "admin") {
-        return res.status(403).json({ message: "Forbidden: Admins only" });
+        return res.status(403).json({
+            success: false,
+            message: "Admins only"
+        });
     }
+
     next();
 };
 
-
 // ====================================================================================================
-// Authorize User
+// Role Based Authorization
 // ====================================================================================================
 export const authorize = (...roles) => {
     return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
-            return res.status(403).json({ message: "Access denied" });
+
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Not authorized"
+            });
         }
+
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied"
+            });
+        }
+
         next();
     };
 };
+
+

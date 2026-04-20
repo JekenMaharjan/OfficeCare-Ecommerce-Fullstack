@@ -1,26 +1,24 @@
 import mongoose from "mongoose";
 import Product from "../models/product.js";
 import path from "path";
-import { promises as fsPromises } from "fs";
-
+import { promises as fs } from "fs";
 
 // ====================================================================================================
 // PRODUCT CONTROLLER
 // ====================================================================================================
-// GET: Get all products
-// GET: Get product by ID
+// GET: All products
+// GET: Product by ID
 // POST: Create product
 // PUT: Update product
-// DELETE: Delete a product
+// DELETE: Product + image
 // ====================================================================================================
 
-
 // ====================================================================================================
-// GET: Get all products
+// GET: All products
 // ====================================================================================================
 export const getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find().lean(); // Add .lean() for plain JS objects
+        const products = await Product.find().lean();
 
         const formatted = products.map((product) => ({
             ...product,
@@ -28,14 +26,14 @@ export const getAllProducts = async (req, res) => {
         }));
 
         res.status(200).json(formatted);
+
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-
 // ====================================================================================================
-// GET: Get product by ID
+// GET: Product by ID
 // ====================================================================================================
 export const getProductById = async (req, res) => {
     try {
@@ -43,20 +41,21 @@ export const getProductById = async (req, res) => {
             return res.status(400).json({ message: "Invalid product ID" });
         }
 
-        const product = await Product.findById(req.params.id);
+        const product = await Product.findById(req.params.id).lean();
 
-        if (!product)
+        if (!product) {
             return res.status(404).json({ message: "Product not found" });
+        }
 
         res.json({
-            ...product._doc,
+            ...product,
             image: product.image ? `/uploads/${product.image}` : null,
         });
+
     } catch (error) {
         res.status(500).json({ message: "Server error" });
     }
 };
-
 
 // ====================================================================================================
 // POST: Create product
@@ -65,26 +64,32 @@ export const createProduct = async (req, res) => {
     try {
         const { name, description, price, stock } = req.body;
 
-        if (!name || !description || price == null || stock == null)
-            return res.status(400).json({ message: "All fields are required" });
+        if (!name || !description || price == null || stock == null) {
+            return res.status(400).json({
+                message: "All fields are required"
+            });
+        }
 
-        if (!req.file)
-            return res.status(400).json({ message: "Product image is required" });
+        if (!req.file) {
+            return res.status(400).json({
+                message: "Product image is required"
+            });
+        }
 
         const product = await Product.create({
             name,
             description,
             price,
             stock,
-            image: req.file ? req.file.filename : null
+            image: req.file.filename
         });
 
         res.status(201).json(product);
+
     } catch (error) {
         res.status(500).json({ message: "Server error" });
     }
 };
-
 
 // ====================================================================================================
 // PUT: Update product
@@ -93,54 +98,60 @@ export const updateProduct = async (req, res) => {
     try {
         const { name, description, price, stock } = req.body;
 
-        const updateData = { name, description, price, stock };
+        const updateData = {
+            name,
+            description,
+            price,
+            stock
+        };
 
         if (req.file) {
-            updateData.image = req.file ? req.file.filename : null
+            updateData.image = req.file.filename;
         }
 
         const product = await Product.findByIdAndUpdate(
             req.params.id,
             updateData,
-            { returnDocument: "after" }
+            { new: true }
         );
 
-        if (!product)
+        if (!product) {
             return res.status(404).json({ message: "Product not found" });
+        }
 
         res.json(product);
+
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-
 // ====================================================================================================
-// DELETE: Delete a product
+// DELETE: Product + image
 // ====================================================================================================
 export const deleteProduct = async (req, res) => {
     try {
-        // Find the product first
         const product = await Product.findById(req.params.id);
 
-        if (!product)
+        if (!product) {
             return res.status(404).json({ message: "Product not found" });
+        }
 
-        // Delete the image file if it exists
+        // Delete image safely
         if (product.image) {
             const imagePath = path.join(process.cwd(), "uploads", product.image);
-            await fsPromises.unlink(imagePath).catch(err => {
-                console.error("Failed to delete image file:", err.message);
+
+            await fs.unlink(imagePath).catch((err) => {
+                console.error("Image delete failed:", err.message);
             });
         }
 
-        // Delete the product from DB
         await Product.findByIdAndDelete(req.params.id);
 
-        res.json({ message: "Product and its image deleted successfully" });
+        res.json({ message: "Product deleted successfully" });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server error" });
     }
 };
-

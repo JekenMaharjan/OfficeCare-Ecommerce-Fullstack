@@ -1,5 +1,6 @@
-import express from "express"
-import { adminMiddleware, authMiddleware, authorize } from "../middlewares/auth.js";
+import express from "express";
+import { authMiddleware, authorize } from "../middlewares/auth.js";
+
 import {
     addToCart,
     getCartCount,
@@ -17,21 +18,21 @@ const cartRouter = express.Router();
 // Protect all cart routes
 cartRouter.use(authMiddleware);
 
-// =================================================================================================
+// ====================================================================================================
 
-// GET: Get cart count -> customer only
-cartRouter.get("/count", authorize("customer"), getCartCount); 
+// GET: Get cart count
+cartRouter.get("/count", authorize("customer"), getCartCount);
 
-// GET: Get cart details -> customer only
-cartRouter.get("/items", authorize("customer"), getCartItems); 
+// GET: Get cart items
+cartRouter.get("/items", authorize("customer"), getCartItems);
 
-// POST: Add product to cart -> customer only
+// POST: Add to cart
 cartRouter.post("/", authorize("customer"), addToCart);
 
-// PATCH: Update cart quantity -> customer only
+// PATCH: Update quantity
 cartRouter.patch("/quantity", authorize("customer"), updateCartQuantity);
 
-// DELETE: Remove product from cart -> customer only
+// DELETE: Remove item
 cartRouter.delete("/", authorize("customer"), removeFromCart);
 
 export default cartRouter;

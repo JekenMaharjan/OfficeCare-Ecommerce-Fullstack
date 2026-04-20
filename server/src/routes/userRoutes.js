@@ -1,6 +1,6 @@
-import express from 'express'
-import { adminMiddleware, authMiddleware, authorize } from '../middlewares/auth.js';
-import { getAllUsers } from '../controllers/userController.js';
+import express from "express";
+import { authMiddleware, authorize } from "../middlewares/auth.js";
+import { getAllUsers } from "../controllers/userController.js";
 
 const userRouter = express.Router();
 
@@ -8,18 +8,22 @@ const userRouter = express.Router();
 // USER ROUTES
 // ====================================================================================================
 
-// Protect all order routes
+// Protect all user routes (User must be logged in)
 userRouter.use(authMiddleware);
-// userRouter.use(adminMiddleware);
 
 // ====================================================================================================
 
-// GET: Route for authenticated users
-userRouter.get("/profile", authorize("admin"), (req, res) => {
-    res.json({ message: "Profile data", user: req.user });
+// GET: Authenticated user profile (admin & customer both allowed)
+userRouter.get("/profile", (req, res) => {
+    res.json({
+        message: "Profile data",
+        user: req.user
+    });
 });
 
-// GET: Route for admin only
+// ====================================================================================================
+
+// GET: Admin only - get all users
 userRouter.get("/all-users", authorize("admin"), getAllUsers);
 
 export default userRouter;

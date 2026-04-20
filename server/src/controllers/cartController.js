@@ -1,17 +1,15 @@
 import Cart from "../models/cart.js";
 import Product from "../models/product.js";
 
-
 // ====================================================================================================
 // CART CONTROLLER
 // ====================================================================================================
 // GET: Get cart count
 // GET: Get all cart items
-// POST: Add a product to cart
-// PATCH: Update cart quantity
-// DELETE: Remove a product from cart
+// POST: Add product to cart
+// PATCH: Update cart quantity (NO STOCK CHANGE HERE)
+// DELETE: Remove item from cart (NO STOCK CHANGE HERE)
 // ====================================================================================================
-
 
 // ====================================================================================================
 // GET: Get cart count
@@ -26,12 +24,12 @@ export const getCartCount = async (req, res) => {
             : 0;
 
         res.status(200).json({ count });
+
     } catch (error) {
         console.error("Cart count error:", error);
         res.status(500).json({ count: 0 });
     }
 };
-
 
 // ====================================================================================================
 // GET: Get all cart items
@@ -39,34 +37,35 @@ export const getCartCount = async (req, res) => {
 export const getCartItems = async (req, res) => {
     try {
         const userId = req.user.id;
-        const cart = await Cart.findOne({ user: userId }).populate("items.product");
+
+        const cart = await Cart.findOne({ user: userId })
+            .populate("items.product");
 
         res.status(200).json(cart || { items: [] });
+
     } catch (error) {
         console.error("Get cart items error:", error);
         res.status(500).json({ items: [] });
     }
 };
 
-
 // ====================================================================================================
-// POST: Add a product to cart
+// POST: Add product to cart
 // ====================================================================================================
 export const addToCart = async (req, res) => {
     try {
         const userId = req.user.id;
         const { productId, quantity } = req.body;
 
-        // Fetch product to check stock
         const product = await Product.findById(productId);
-        if (!product) return res.status(404).json({ message: "Product not found!" });
-
-        // Check stock only (do NOT decrease)
-        if (product.stock < quantity) {
-            return res.status(400).json({ message: "Not enough stock!" });
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
         }
 
-        // Fetch user cart
+        if (product.stock < quantity) {
+            return res.status(400).json({ message: "Not enough stock" });
+        }
+
         let cart = await Cart.findOne({ user: userId });
 
         if (!cart) {
@@ -75,37 +74,28 @@ export const addToCart = async (req, res) => {
                 items: [{ product: productId, quantity }],
             });
 
-            return res.status(200).json({
-                cart,
-                stock: product.stock
-            });
+            return res.status(201).json(cart);
         }
 
-        // Check if product already in cart
         const itemIndex = cart.items.findIndex(
             (item) => item.product.toString() === productId
         );
 
         if (itemIndex > -1) {
-            const newQuantity = cart.items[itemIndex].quantity + quantity;
+            const newQty = cart.items[itemIndex].quantity + quantity;
 
-            if (product.stock < newQuantity) {
-                return res.status(400).json({
-                    message: "Not enough stock available"
-                });
+            if (product.stock < newQty) {
+                return res.status(400).json({ message: "Not enough stock" });
             }
 
-            cart.items[itemIndex].quantity = newQuantity;
+            cart.items[itemIndex].quantity = newQty;
         } else {
             cart.items.push({ product: productId, quantity });
         }
 
         await cart.save();
 
-        res.status(200).json({
-            cart,
-            stock: product.stock
-        });
+        res.status(200).json(cart);
 
     } catch (error) {
         console.error("Add to cart error:", error);
@@ -114,7 +104,7 @@ export const addToCart = async (req, res) => {
 };
 
 // ====================================================================================================
-// PATCH: Update cart quantity
+// PATCH: Update cart quantity (NO STOCK CHANGE HERE)
 // ====================================================================================================
 export const updateCartQuantity = async (req, res) => {
     try {
@@ -122,35 +112,28 @@ export const updateCartQuantity = async (req, res) => {
         const { productId, action } = req.body;
 
         const cart = await Cart.findOne({ user: userId });
-        if (!cart) return res.status(404).json({ message: "Cart not found" });
+        if (!cart) {
+            return res.status(404).json({ message: "Cart not found" });
+        }
 
         const item = cart.items.find(
-            i => i.product.toString() === productId
+            (i) => i.product.toString() === productId
         );
 
-        if (!item) return res.status(404).json({ message: "Item not found" });
+        if (!item) {
+            return res.status(404).json({ message: "Item not found" });
+        }
 
         if (action === "increase") {
-            const product = await Product.findById(productId);
-
-            if (!product || product.stock <= 0)
-                return res.status(400).json({ message: "Out of stock" });
-
             item.quantity += 1;
-            product.stock -= 1;
-            await product.save();
         }
 
         if (action === "decrease") {
             item.quantity -= 1;
 
-            await Product.findByIdAndUpdate(productId, {
-                $inc: { stock: 1 }
-            });
-
             if (item.quantity <= 0) {
                 cart.items = cart.items.filter(
-                    i => i.product.toString() !== productId
+                    (i) => i.product.toString() !== productId
                 );
             }
         }
@@ -160,36 +143,35 @@ export const updateCartQuantity = async (req, res) => {
         res.status(200).json(cart);
 
     } catch (error) {
-        res.status(500).json({ message: "Failed to update quantity" });
+        console.error("Update cart error:", error);
+        res.status(500).json({ message: "Failed to update cart" });
     }
 };
 
-
 // ====================================================================================================
-// DELETE: Remove a product from cart
+// DELETE: Remove item from cart (NO STOCK CHANGE HERE)
 // ====================================================================================================
 export const removeFromCart = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { productId, quantity } = req.body;
+        const { productId } = req.body;
 
         const cart = await Cart.findOne({ user: userId });
-        if (!cart) return res.status(404).json({ message: "Cart not found" });
 
-        // Remove product from cart
-        cart.items = cart.items.filter(item => item.product.toString() !== productId);
-        await cart.save();
-
-        // Increase product stock
-        const product = await Product.findById(productId);
-        if (product) {
-            product.stock += quantity;
-            await product.save();
+        if (!cart) {
+            return res.status(404).json({ message: "Cart not found" });
         }
 
+        cart.items = cart.items.filter(
+            (item) => item.product.toString() !== productId
+        );
+
+        await cart.save();
+
         res.status(200).json(cart);
+
     } catch (error) {
-        console.error("Remove from cart error:", error);
-        res.status(500).json({ message: "Failed to remove from cart" });
+        console.error("Remove cart error:", error);
+        res.status(500).json({ message: "Failed to remove item" });
     }
 };

@@ -4,14 +4,12 @@ import jwt from "jsonwebtoken";
 
 const saltRounds = 10;
 
-
-// ====================================================================================================
+// ============================================================================
 // AUTH CONTROLLER
-// ====================================================================================================
+// ============================================================================
 // POST: Register new user
 // POST: Login user
-// ====================================================================================================
-
+// ============================================================================
 
 // ============================================================================
 // POST: Register new user
@@ -20,14 +18,14 @@ export const registerNewUser = async (req, res) => {
     try {
         const { fullName, email, password } = req.body;
 
-        // 1️. Basic validation
+        // Basic validation
         if (!fullName || !email || !password) {
             return res.status(400).json({
                 message: "All fields are required.",
             });
         }
 
-        // 2️. Check if user already exists
+        // Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({
@@ -35,10 +33,10 @@ export const registerNewUser = async (req, res) => {
             });
         }
 
-        // 3️. Hash password
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        // 4️. Create new user
+        // Create user
         const newUser = await User.create({
             fullName,
             email,
@@ -51,6 +49,7 @@ export const registerNewUser = async (req, res) => {
                 id: newUser._id,
                 fullName: newUser.fullName,
                 email: newUser.email,
+                role: newUser.role,
             },
         });
 
@@ -69,14 +68,14 @@ export const signinUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // 1️. Validate input
+        // Validate input
         if (!email || !password) {
             return res.status(400).json({
                 message: "Email and password are required.",
             });
         }
 
-        // 2️. Check if user exists
+        // Find user
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({
@@ -84,7 +83,7 @@ export const signinUser = async (req, res) => {
             });
         }
 
-        // 3️. Compare passwords
+        // Check password
         const isMatched = await bcrypt.compare(password, user.password);
         if (!isMatched) {
             return res.status(400).json({
@@ -92,24 +91,24 @@ export const signinUser = async (req, res) => {
             });
         }
 
-        // 4️. Generate JWT token
+        // Generate token
         const token = jwt.sign(
             { id: user._id, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: "1d" }
         );
 
-        // 5️. Send cookie (secure in production)
+        // Set cookie
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "none", // important for frontend + backend on different domains
+            sameSite: "lax", // better default than "none" for most cases
             maxAge: 24 * 60 * 60 * 1000,
         });
 
         return res.status(200).json({
-            token,
             message: "Logged in successfully.",
+            token,
             user: {
                 id: user._id,
                 fullName: user.fullName,

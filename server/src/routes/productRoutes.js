@@ -1,40 +1,17 @@
 import express from 'express';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import upload from '../middlewares/upload.js';
+
 import {
-    createProduct, 
-    deleteProduct, 
-    getAllProducts, 
-    getProductById, 
-    updateProduct 
+    createProduct,
+    deleteProduct,
+    getAllProducts,
+    getProductById,
+    updateProduct
 } from '../controllers/productController.js';
-import { adminMiddleware, authMiddleware, authorize } from '../middlewares/auth.js';
+
+import { authMiddleware, authorize } from '../middlewares/auth.js';
 
 const productRouter = express.Router();
-
-// Ensure uploads folder exists
-const uploadsDir = path.join(process.cwd(), 'uploads');
-
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Multer storage
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, "uploads/");
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + "-" + file.originalname);
-    },
-});
-
-const upload = multer({ storage });
-
-// ====================================================================================================
-// PRODUCT ROUTES
-// ====================================================================================================
 
 // Protect all product routes
 productRouter.use(authMiddleware);
@@ -48,10 +25,20 @@ productRouter.get('/', authorize("admin", "customer"), getAllProducts);
 productRouter.get('/:id', authorize("admin", "customer"), getProductById);
 
 // POST: Create product -> admin only
-productRouter.post('/', authorize("admin"), upload.single('image'), createProduct);
+productRouter.post(
+    '/',
+    authorize("admin"),
+    upload.single('image'),
+    createProduct
+);
 
 // PUT: Update product -> admin only
-productRouter.put('/:id', authorize("admin"), upload.single('image'), updateProduct);
+productRouter.put(
+    '/:id',
+    authorize("admin"),
+    upload.single('image'),
+    updateProduct
+);
 
 // DELETE: Delete product -> admin only
 productRouter.delete('/:id', authorize("admin"), deleteProduct);
